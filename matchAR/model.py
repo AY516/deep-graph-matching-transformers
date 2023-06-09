@@ -1,20 +1,17 @@
 import torch
 import torch.nn as nn
 from torch_geometric.utils import to_dense_batch
-
-
+import torch_geometric.transforms as T
 
 import utils.backbone
-# from BB_GM.affinity_layer import InnerProductWithWeightsAffinity
 from matchAR.sconv_archs import SConv
 from matchAR.positionalEmbedding import PositionalEncoding
-# from lpmp_py import GraphMatchingModule
-# from lpmp_py import MultiGraphMatchingModule
 from utils.config import cfg
 from utils.feature_align import feature_align
 from utils.utils import lexico_iter
 from utils.visualization import easy_visualize
 
+transform = T.Compose([T.AddLaplacianEigenvectorPE(k=8, is_undirected=True)])
 
 def normalize_over_channels(x):
     channel_norms = torch.norm(x, dim=1, keepdim=True)
@@ -47,6 +44,7 @@ class Net(utils.backbone.VGG16_bn):
         self.psi = SConv(input_features=cfg.SPLINE_CNN.input_features, output_features=cfg.Matching_TF.d_model)
         self.mlp = MLPQuery(cfg.Matching_TF.d_model, 1024, cfg.Matching_TF.d_model, batch_norm=cfg.Matching_TF.batch_norm)
         self.glob_to_node_dim = nn.Linear(512, cfg.Matching_TF.d_model)
+        self.lap_to_node_dim = nn.Linear(cfg.Matching_TF.n_lap_EigVec, cfg.Matching_TF.d_model)
 
         # self.s_enc = nn.Parameter(torch.randn(cfg.Matching_TF.d_model))
         # self.t_enc = nn.Parameter(torch.randn(cfg.Matching_TF.d_model))
@@ -96,8 +94,15 @@ class Net(utils.backbone.VGG16_bn):
             node_features = torch.cat((U, F), dim=-1)
             graph.x = node_features
             h = self.psi(graph)
-            (h, mask) = to_dense_batch(h, graph.batch, fill_value=0)
             
+            if cfg.Matching_TF.pos_encoding:
+                graph = transform(graph)
+                graph.laplacian_eigenvector_pe = self.lap_to_node_dim(graph.laplacian_eigenvector_pe)
+                graph.x = graph.x + graph.laplacian_eigenvector_pe
+            
+
+            (h, mask) = to_dense_batch(h, graph.batch, fill_value=0)
+
             if cfg.Matching_TF.global_feat:
                 global_feature = self.final_layers(edges)[0].reshape((nodes.shape[0], -1))
                 global_feature = self.glob_to_node_dim(global_feature)

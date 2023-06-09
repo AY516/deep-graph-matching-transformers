@@ -15,6 +15,8 @@
     "n_encoder": 4,
     "n_decoder": 4,
     "d_model": 256,
+    "n_lap_EigVec": 8,
+    "pos_encoding": true,
     "batch_norm": false,
     "global_feat": false
   },
