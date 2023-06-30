@@ -120,7 +120,7 @@ def easy_visualize(
     true_matchings,
     string_info,
     reduced_vis,
-    produce_pdf=True,
+    produce_pdf=False,
 ):
     """
 

@@ -160,20 +160,20 @@ class ResMatcherNet(utils.backbone.VGG16_bn):
         output = self.mlp_out(transformer_out)
         # print('output: ', output.size())
 
-        # C = - output.view(batch_size, N_s, N_t)
-        # y_pred = torch.tensor(np.array([linear_sum_assignment(C[x,:,:].detach().cpu().numpy()) 
-        #                     for x in range(batch_size)])).to(output.device)
-        # matchings = [make_perm_mat_pred(y_pred[:,1,:], N_t).to(output.device)]
+        C = - output.view(batch_size, N_s, N_t)
+        y_pred = torch.tensor(np.array([linear_sum_assignment(C[x,:,:].detach().cpu().numpy()) 
+                            for x in range(batch_size)])).to(output.device)
+        matchings = [make_perm_mat_pred(y_pred[:,1,:], N_t).to(output.device)]
 
-        # if visualize_flag:
-        #     easy_visualize(
-        #         graph_list,
-        #         points,
-        #         n_points,
-        #         images,
-        #         matchings,
-        #         **visualization_params,
-        #     )
+        if visualize_flag:
+            easy_visualize(
+                graph_list,
+                points,
+                n_points,
+                images,
+                matchings,
+                **visualization_params,
+            )
 
         return output.squeeze(2)
 

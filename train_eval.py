@@ -88,7 +88,7 @@ def train_eval_model(model, criterion, optimizer, dataloader, max_norm, num_epoc
     if cfg.evaluate_only:
         assert resume
         print(f"Evaluating without training...")
-        accs, f1_scores = eval.eval_model(model, dataloader["test"], eval_epoch=5)
+        accs, f1_scores = eval.eval_model(model, dataloader["test"], eval_epoch=15)
         acc_dict = {
             "acc_{}".format(cls): single_acc for cls, single_acc in zip(dataloader["train"].dataset.classes, accs)
         }
