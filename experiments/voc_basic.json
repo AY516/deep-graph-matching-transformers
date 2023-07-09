@@ -32,7 +32,7 @@
     "lr_schedule": "long_halving",
     "clip_norm": 0.1,
     "num_graphs_in_matching_instance": 2,
-    "random_swap": false
+    "random_swap": true
   },
   "STATISTIC_STEP": 20,
   "TRACK_GRAD_NORM": false,

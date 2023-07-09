@@ -138,20 +138,20 @@ def train_eval_model(model, criterion, optimizer, dataloader, max_norm, num_epoc
             perm_mat_list = [perm_mat.cuda() for perm_mat in inputs["gt_perm_mat"]]
 
             # # randomly swap source and target images
-            if cfg.TRAIN.random_swap:
-                for i in range(data_list[0].shape[0]):
-                    # with 0.5 probability
-                    swap_flag = torch.bernoulli(torch.Tensor([0.5]))
-                    swap_flag = int(swap_flag.item())
+            # if cfg.TRAIN.random_swap:
+            #     for i in range(data_list[0].shape[0]):
+            #         # with 0.5 probability
+            #         swap_flag = torch.bernoulli(torch.Tensor([0.5]))
+            #         swap_flag = int(swap_flag.item())
 
-                    if swap_flag:
-                        # swap edge list
-                        # swap everything else
-                        perm_mat_list = swap_permutation_matrix(perm_mat_list, i)
-                        data_list = swap_src_tgt_order(data_list, i)
-                        points_gt_list = swap_src_tgt_order(points_gt_list, i)
-                        n_points_gt_list = swap_src_tgt_order(n_points_gt_list, i)
-                        edges_list = swap_src_tgt_order(edges_list, i)
+            #         if swap_flag:
+            #             # swap edge list
+            #             # swap everything else
+            #             perm_mat_list = swap_permutation_matrix(perm_mat_list, i)
+            #             data_list = swap_src_tgt_order(data_list, i)
+            #             points_gt_list = swap_src_tgt_order(points_gt_list, i)
+            #             n_points_gt_list = swap_src_tgt_order(n_points_gt_list, i)
+            #             edges_list = swap_src_tgt_order(edges_list, i)
 
 
             num_graphs = points_gt_list[0].size(0)
@@ -328,7 +328,7 @@ if __name__ == "__main__":
     }
     dataloader = {x: get_dataloader(image_dataset[x], fix_seed=(x == "test")) for x in ("train", "test")}
 
-    torch.cuda.set_device(4)
+    torch.cuda.set_device(5)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if cfg.MODEL_ARCH == 'tf':
@@ -346,7 +346,7 @@ if __name__ == "__main__":
     criterion = torch.nn.BCEWithLogitsLoss()
 
     backbone_params = list(model.node_layers.parameters()) + list(model.edge_layers.parameters())
-    backbone_params += list(model.final_layers.parameters())
+    # backbone_params += list(model.final_layers.parameters())
 
     backbone_ids = [id(item) for item in backbone_params]
 

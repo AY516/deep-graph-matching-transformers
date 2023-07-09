@@ -16,6 +16,14 @@ datasets = {"PascalVOC": PascalVOC,
             "WillowObject": WillowObject,
             "SPair71k": SPair71k}
 
+def swap(data_list):
+    tmp = data_list[1]
+    data_list[1] = data_list[0]
+    data_list[0] = tmp
+
+    return data_list
+
+
 class GMDataset(Dataset):
     def __init__(self, name, length, **args):
         self.name = name
@@ -85,6 +93,15 @@ class GMDataset(Dataset):
             graph.num_nodes = n_p_gt
             graph_list.append(graph)
 
+        swap_flag = torch.bernoulli(torch.Tensor([0.5]))
+        swap_flag = int(swap_flag.item())
+
+        if swap_flag and cfg.TRAIN.random_swap:
+            points_gt = swap(points_gt)
+            n_points_gt = swap(n_points_gt)
+            perm_mat_list = [np.transpose(perm_mat_list[0])]
+            graph_list = swap(graph_list)
+
         ret_dict = {
             "Ps": [torch.Tensor(x) for x in points_gt],
             "ns": [torch.tensor(x) for x in n_points_gt],
@@ -96,9 +113,13 @@ class GMDataset(Dataset):
         if imgs[0] is not None:
             trans = transforms.Compose([transforms.ToTensor(), transforms.Normalize(cfg.NORM_MEANS, cfg.NORM_STD)])
             imgs = [trans(img) for img in imgs]
+            if swap_flag and cfg.TRAIN.random_swap:
+                imgs = swap(imgs)
             ret_dict["images"] = imgs
         elif "feat" in anno_list[0]["keypoints"][0]:
             feat_list = [np.stack([kp["feat"] for kp in anno_dict["keypoints"]], axis=-1) for anno_dict in anno_list]
+            if swap_flag and cfg.TRAIN.random_swap:
+                feat_list = swap(feat_list)
             ret_dict["features"] = [torch.Tensor(x) for x in feat_list]
 
         return ret_dict
