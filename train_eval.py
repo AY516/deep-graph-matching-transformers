@@ -346,7 +346,7 @@ if __name__ == "__main__":
     criterion = torch.nn.BCEWithLogitsLoss()
 
     backbone_params = list(model.node_layers.parameters()) + list(model.edge_layers.parameters())
-    backbone_params += list(model.final_layers.parameters())
+    # backbone_params += list(model.final_layers.parameters())
 
     backbone_ids = [id(item) for item in backbone_params]
 
