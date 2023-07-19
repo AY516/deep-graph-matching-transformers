@@ -91,6 +91,7 @@ class GMDataset(Dataset):
         ret_dict = {
             "Ps": [torch.Tensor(x) for x in points_gt],
             "ns": [torch.tensor(x) for x in n_points_gt],
+            "ns_samp": [torch.randint(low=0, high=n_points_gt[0], size=(1,))],
             "gt_perm_mat": perm_mat_list,
             "edges": graph_list,
         }

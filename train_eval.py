@@ -60,17 +60,17 @@ def swap_permutation_matrix(perm_mat_list, i):
 
     return [output_tensor]
 
-def mask_loss(perm_mat_list, sampled_points):
+def mask_loss(perm_mat_list, rand_ndx_list):
     perm_mat_mask = []
     B, N_s, N_t  = perm_mat_list[0].size()
-
-    for k, i in enumerate(sampled_points):
-        matched_ndx = torch.nonzero(perm_mat_list[0][k,:,:] == 1).squeeze()[:i].to(sampled_points.device)
+    for i, sampled_points in enumerate(rand_ndx_list):
+        n_points_sampled = len(sampled_points)
+        matched_ndx = torch.nonzero(perm_mat_list[0][i,:,:] == 1).squeeze()[sampled_points,:].to(sampled_points.device)
         mask = torch.ones(N_s, N_t).to(sampled_points.device)
-        mask[:i,:] = torch.zeros(i, N_t)
-        mask[:,matched_ndx[:,1]] = torch.zeros(N_s, matched_ndx[:,1].size(0)).to(sampled_points.device)
+        mask[matched_ndx[:,0],:] = torch.zeros(n_points_sampled, N_t)
+        mask[:,matched_ndx[:,1]] = torch.zeros(N_s, n_points_sampled).to(sampled_points.device)
         perm_mat_mask.append(mask)
-    perm_mat_mask = torch.stack(perm_mat_mask, dim=0).to(sampled_points.device)
+    perm_mat_mask = torch.stack(perm_mat_mask, dim=0).to(rand_ndx_list[0].device)
     return perm_mat_mask
         
 
@@ -149,8 +149,10 @@ def train_eval_model(model, criterion, optimizer, dataloader, max_norm, num_epoc
             data_list = [_.cuda() for _ in inputs["images"]]
             points_gt_list = [_.cuda() for _ in inputs["Ps"]]
             n_points_gt_list = [_.cuda() for _ in inputs["ns"]]
+            n_points_samp = [_.cuda() for _ in inputs["ns_samp"]]
             edges_list = [_.to("cuda") for _ in inputs["edges"]]
             perm_mat_list = [perm_mat.cuda() for perm_mat in inputs["gt_perm_mat"]]
+
 
             # # randomly swap source and target images
             if cfg.TRAIN.random_swap:
@@ -168,8 +170,10 @@ def train_eval_model(model, criterion, optimizer, dataloader, max_norm, num_epoc
                         n_points_gt_list = swap_src_tgt_order(n_points_gt_list, i)
                         edges_list = swap_src_tgt_order(edges_list, i)
 
-            n_points_gt_sample = n_points_gt_list[0].to('cpu').apply_(lambda x: torch.randint(low=0, high=x, size=(1,)).item()).to(device)
-            perm_mat_mask = mask_loss(perm_mat_list, n_points_gt_sample) > 0
+            n_points_gt_sample = n_points_samp[0].squeeze()
+            rand_ndx_list = [torch.randperm(n_points_gt_list[0][idx])[:n_points_gt_sample[idx]] 
+                             for idx in range(len(n_points_gt_sample))]
+            perm_mat_mask = mask_loss(perm_mat_list, rand_ndx_list) > 0
             perm_mat_mask = torch.flatten(perm_mat_mask, 1, 2)
 
 

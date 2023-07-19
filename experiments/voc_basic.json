@@ -23,7 +23,7 @@
   },
   "train_sampling": "intersection",
   "eval_sampling": "intersection",
-  "save_checkpoint": true,
+  "save_checkpoint": false,
   "RANDOM_SEED": 123,
   "warmstart_path": null,
   "TRAIN": {

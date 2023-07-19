@@ -83,6 +83,7 @@ class MatchARNet(utils.backbone.VGG16_bn):
         for batch_idx in range(B):
             i = n_points_sample[batch_idx]
             if in_training:
+                # and operator with mask and then find index of 1 entries
                 idx = torch.nonzero(perm_mats[0][batch_idx, :i] == 1)
             else:
                 idx = torch.nonzero(perm_mats[0][batch_idx] == 1)
@@ -112,7 +113,7 @@ class MatchARNet(utils.backbone.VGG16_bn):
         perm_mats,
         visualize_flag=False,
         visualization_params=None,
-        in_training=True
+        in_training=False
     ):
         batch_size = graphs[0].num_graphs
         global_list = []
