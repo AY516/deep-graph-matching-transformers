@@ -14,7 +14,7 @@
     "n_head": 4,
     "n_encoder": 6,
     "n_decoder": 4,
-    "d_model": 1024,
+    "d_model": 512,
     "activation": "relu",
     "batch_norm": true,
     "global_feat": false,
