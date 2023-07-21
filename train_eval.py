@@ -355,7 +355,7 @@ if __name__ == "__main__":
         dict(params=backbone_params, lr=cfg.TRAIN.LR * 0.01),
         dict(params=new_params, lr=cfg.TRAIN.LR),
     ]
-    optimizer = optim.AdamW(opt_params)
+    optimizer = optim.RAdam(opt_params)
 
     if not Path(cfg.model_dir).exists():
         Path(cfg.model_dir).mkdir(parents=True)
