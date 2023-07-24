@@ -144,11 +144,11 @@ class MatchARNet(utils.backbone.VGG16_bn):
             graph_list.append(graph.to_data_list())
 
             # node + edge features from vgg
-            vgg_features = self.vgg_to_node_dim(node_features)
+            # vgg_features = self.vgg_to_node_dim(node_features)
             # splineCNN spatial features 
-            h = self.psi(graph)
+            h_res = self.psi(graph)
 
-            h_res = h + vgg_features
+            # h_res = h + vgg_features
                             
             (h_res, mask) = to_dense_batch(h_res, graph.batch, fill_value=0)
 

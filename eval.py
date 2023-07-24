@@ -8,7 +8,7 @@ from utils.config import cfg
 from utils.evaluation_metric import matching_accuracy, f1_score, get_pos_neg, make_perm_mat_pred, matching_accuracy_from_lists, get_pos_neg_from_lists
 
 
-def eval_model(model, dataloader, eval_epoch=None, verbose=True):
+def eval_model(model, dataloader, eval_epoch=None, verbose=False):
     print("Start evaluation...")
     since = time.time()
 

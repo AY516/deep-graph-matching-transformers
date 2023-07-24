@@ -28,7 +28,7 @@ class HammingLoss(torch.nn.Module):
 lr_schedules = {
     #TODO: CHANGE BACK TO 10
     "long_halving": (30, (2, 4, 6, 9, 10, 13, 16, 18, 20, 23, 26, 29), 0.5),
-    # "long_halving": (20, (2, 4, 15, 17, 20), 0.1),
+    # "long_halving": (50, (5, 10, 15, 20, 25, 30, 35, 40, 45, 47,50), 0.5),
     "short_halving": (2, (1,), 0.5),
     "long_nodrop": (10, (10,), 1.0),
     "minirun": (1, (10,), 1.0),
@@ -62,6 +62,7 @@ def swap_permutation_matrix(perm_mat_list, i):
 
 def mask_loss(perm_mat_list, rand_ndx_list):
     perm_mat_mask = []
+    matched_indcies = []
     B, N_s, N_t  = perm_mat_list[0].size()
     for i, sampled_points in enumerate(rand_ndx_list):
         n_points_sampled = len(sampled_points)
@@ -69,9 +70,10 @@ def mask_loss(perm_mat_list, rand_ndx_list):
         mask = torch.ones(N_s, N_t).to(sampled_points.device)
         mask[matched_ndx[:,0],:] = torch.zeros(n_points_sampled, N_t)
         mask[:,matched_ndx[:,1]] = torch.zeros(N_s, n_points_sampled).to(sampled_points.device)
+        matched_indcies.append(matched_ndx)
         perm_mat_mask.append(mask)
     perm_mat_mask = torch.stack(perm_mat_mask, dim=0).to(rand_ndx_list[0].device)
-    return perm_mat_mask
+    return perm_mat_mask, matched_indcies
         
 
 def train_eval_model(model, criterion, optimizer, dataloader, max_norm, num_epochs, resume=False, start_epoch=0):
@@ -173,8 +175,8 @@ def train_eval_model(model, criterion, optimizer, dataloader, max_norm, num_epoc
             n_points_gt_sample = n_points_samp[0].squeeze()
             rand_ndx_list = [torch.randperm(n_points_gt_list[0][idx])[:n_points_gt_sample[idx]] 
                              for idx in range(len(n_points_gt_sample))]
-            perm_mat_mask = mask_loss(perm_mat_list, rand_ndx_list) > 0
-            perm_mat_mask = torch.flatten(perm_mat_mask, 1, 2)
+            perm_mat_mask, sampled_matches = mask_loss(perm_mat_list, rand_ndx_list) 
+            perm_mat_mask = (perm_mat_mask > 0 ).to(perm_mat_list[0].device)
 
 
             num_graphs = points_gt_list[0].size(0)
@@ -187,7 +189,10 @@ def train_eval_model(model, criterion, optimizer, dataloader, max_norm, num_epoc
 
             with torch.set_grad_enabled(True):
                 # forward
-                s_pred_list = model(data_list, points_gt_list, edges_list, n_points_gt_list, n_points_gt_sample, perm_mat_list)
+                s_pred_list = model(data_list, points_gt_list, edges_list, n_points_gt_list, n_points_gt_sample, perm_mat_list, sampled_matches)
+
+                # Flatten permutation and ground truth matrix mask 
+                perm_mat_mask = torch.flatten(perm_mat_mask, 1, 2)
                 y_gt = torch.flatten(perm_mat_list[0], 1, 2)
                 y_gt_masked = torch.masked_select(y_gt, perm_mat_mask)
                 s_pred_masked = torch.masked_select(s_pred_list, perm_mat_mask)
@@ -337,20 +342,20 @@ def train_eval_model(model, criterion, optimizer, dataloader, max_norm, num_epoc
 
         print()
         # Eval in each epoch
-        if (epoch+1) % 5 == 0 :
-            accs, f1_scores, _ = eval.eval_model(model, dataloader["test"])
-            acc_dict = {
-                "acc_{}".format(cls): single_acc for cls, single_acc in zip(dataloader["train"].dataset.classes, accs)
-            }
-            f1_dict = {
-                "f1_{}".format(cls): single_f1_score
-                for cls, single_f1_score in zip(dataloader["train"].dataset.classes, f1_scores)
-            }
-            acc_dict.update(f1_dict)
-            acc_dict["matching_accuracy"] = torch.mean(accs)
-            acc_dict["f1_score"] = torch.mean(f1_scores)
+        # if (epoch+1) % 5 == 0 :
+        accs, f1_scores, _ = eval.eval_model(model, dataloader["test"])
+        acc_dict = {
+            "acc_{}".format(cls): single_acc for cls, single_acc in zip(dataloader["train"].dataset.classes, accs)
+        }
+        f1_dict = {
+            "f1_{}".format(cls): single_f1_score
+            for cls, single_f1_score in zip(dataloader["train"].dataset.classes, f1_scores)
+        }
+        acc_dict.update(f1_dict)
+        acc_dict["matching_accuracy"] = torch.mean(accs)
+        acc_dict["f1_score"] = torch.mean(f1_scores)
 
-        # wandb.log({"mean test_acc": torch.mean(accs), "mean test_f1": torch.mean(f1_scores)})
+        wandb.log({"mean test_acc": torch.mean(accs), "mean test_f1": torch.mean(f1_scores)})
 
         scheduler.step()
 
@@ -398,7 +403,7 @@ if __name__ == "__main__":
     }
     dataloader = {x: get_dataloader(image_dataset[x], fix_seed=(x == "test")) for x in ("train", "test")}
 
-    torch.cuda.set_device(5)
+    torch.cuda.set_device(4)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if cfg.MODEL_ARCH == 'tf':

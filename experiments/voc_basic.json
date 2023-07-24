@@ -42,7 +42,7 @@
     "reduced_vis": true
   },
   "evaluate_only": false,
-  "model_dir": "/work/ayadav/results/voc_basic/matchAR_corrected_mask",
+  "model_dir": "/work/ayadav/results/spair/matchAR_random_mask_global_vec",
   "log_dir": "runs/",
   "MODEL_ARCH": "ar"
 }
